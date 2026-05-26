@@ -5,6 +5,8 @@ import { createClient } from "../lib/supabase-browser";
 export default function Todos() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [envData, setEnvData] = useState(null);
+  const [showEnv, setShowEnv] = useState(false);
   const inputRef = useRef();
   const supabase = createClient();
 
@@ -17,7 +19,12 @@ export default function Todos() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  const loadEnv = async () => {
+    const res = await fetch("/api/supabase/env");
+    setEnvData(await res.json());
+  };
+
+  useEffect(() => { load(); loadEnv(); }, []);
 
   const addTodo = async (e) => {
     e.preventDefault();
@@ -53,6 +60,50 @@ export default function Todos() {
             Powered by <span style={{ color: "#3ecf8e" }}>Supabase</span> + <span style={{ color: "#fff" }}>Vercel</span>
           </p>
         </div>
+
+        <div style={{ marginBottom: "1.5rem" }}>
+          <button onClick={() => setShowEnv(!showEnv)} style={{
+            background: showEnv ? "#1a1a2e" : "#222", color: "#e5e5e5",
+            border: `1px solid ${showEnv ? "#3ecf8e" : "#333"}`, borderRadius: 8,
+            padding: "0.4rem 0.8rem", cursor: "pointer", fontSize: "0.85rem",
+          }}>
+            {showEnv ? "Hide" : "Show"} Env Vars
+          </button>
+        </div>
+
+        {showEnv && envData && (
+          <div style={{ background: "#111118", border: "1px solid #2d2d44", borderRadius: 12, padding: "1.25rem", marginBottom: "1.5rem" }}>
+            <h3 style={{ fontSize: "0.9rem", color: "#3ecf8e", marginBottom: "1rem" }}>Supabase Binding</h3>
+            <div style={{ display: "grid", gap: 6 }}>
+              {Object.entries(envData.supabase).map(([k, v]) => (
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", padding: "4px 8px", background: "#0d0d14", borderRadius: 6 }}>
+                  <span style={{ fontSize: "0.65rem", padding: "1px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", background: "rgba(62,207,142,0.15)", color: "#3ecf8e" }}>binding</span>
+                  <code style={{ color: "#7ee787" }}>{k}</code>
+                  <span style={{ color: "#555" }}>=</span>
+                  <code style={{ color: v ? "#e5e5e5" : "#f85149" }}>{v ?? "(not set)"}</code>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: "1.25rem" }}>
+              <h3 style={{ fontSize: "0.9rem", color: "#58a6ff", marginBottom: "1rem" }}>Custom Environment Variables</h3>
+              {Object.keys(envData.custom).length === 0 ? (
+                <p style={{ fontSize: "0.8rem", color: "#555" }}>No custom env vars detected.</p>
+              ) : (
+                <div style={{ display: "grid", gap: 6 }}>
+                  {Object.entries(envData.custom).map(([k, v]) => (
+                    <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", padding: "4px 8px", background: "#0d0d14", borderRadius: 6 }}>
+                      <span style={{ fontSize: "0.65rem", padding: "1px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", background: "rgba(88,166,255,0.15)", color: "#58a6ff" }}>custom</span>
+                      <code style={{ color: "#7ee787" }}>{k}</code>
+                      <span style={{ color: "#555" }}>=</span>
+                      <code style={{ color: v === "********" ? "#f0883e" : "#e5e5e5" }}>{v}</code>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={addTodo} style={{ display: "flex", gap: 8, marginBottom: "2rem" }}>
           <input
